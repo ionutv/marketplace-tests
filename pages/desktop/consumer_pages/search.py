@@ -24,7 +24,7 @@ class Search(Base, Sorter, Filter):
     _results_locator = (By.CSS_SELECTOR, "#search-listing > ol.items > li.item")
     _applied_filters_locator = (By.CSS_SELECTOR, '.applied-filters > ol > li > a')
 
-    def __init__(self, testsetup, search_term=False):
+    def __init__(self, testsetup, search_term = False):
         Base.__init__(self, testsetup)
         Sorter.__init__(self, testsetup)
         if search_term and search_term is not "":
@@ -42,6 +42,10 @@ class Search(Base, Sorter, Filter):
     def results(self):
         return [self.SearchResult(self.testsetup, web_element)
                 for web_element in self.find_elements(*self._results_locator)]
+
+    @property
+    def is_by_popularity_title_visible(self):
+        return self.is_element_visible(*self._title_locator)
 
     class SearchResult(PageRegion):
         """provides the methods to access a search result

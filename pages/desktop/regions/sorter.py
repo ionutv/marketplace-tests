@@ -46,3 +46,7 @@ class Sorter(Page):
     @property
     def sorted_by(self):
         return self.selenium.find_element(*self._selected_sort_by_locator).text
+
+    @property
+    def is_sorter_header_visible(self):
+        return self.is_element_visible(*self._sorter_header_locator)

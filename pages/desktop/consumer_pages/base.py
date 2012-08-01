@@ -7,7 +7,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
-from pages.page import Page
+from pages.page import Page, PageRegion
 from mocks.mock_user import MockUser
 from restmail.restmail import RestmailInbox
 
@@ -34,11 +34,11 @@ class Base(Page):
     def login(self, user = "default"):
 
         if isinstance(user, MockUser):
-            bid_login = self.click_login_register(expect='returning')
+            bid_login = self.click_login_register(expect = 'returning')
             bid_login.click_sign_in_returning_user()
 
         elif isinstance(user, str):
-            bid_login = self.click_login_register(expect='new')
+            bid_login = self.click_login_register(expect = 'new')
             credentials = self.testsetup.credentials[user]
             bid_login.sign_in(credentials['email'], credentials['password'])
 
@@ -47,7 +47,7 @@ class Base(Page):
 
         WebDriverWait(self.selenium, self.timeout).until(lambda s: self.footer.is_user_logged_in)
 
-    def click_login_register(self, expect='new'):
+    def click_login_register(self, expect = 'new'):
         """Click the 'Log in/Register' button.
 
         Keyword arguments:
@@ -57,13 +57,13 @@ class Base(Page):
         """
         self.selenium.find_element(*self._login_locator).click()
         from browserid.pages.webdriver.sign_in import SignIn
-        return SignIn(self.selenium, self.timeout, expect=expect)
+        return SignIn(self.selenium, self.timeout, expect = expect)
 
     def create_new_user(self, user):
         #saves the current url
         current_url = self.selenium.current_url
 
-        bid_login = self.click_login_register(expect="new")
+        bid_login = self.click_login_register(expect = "new")
 
         # creates the new user in the browserID pop up
         bid_login.sign_in_new_user(user['email'], user['password'])
@@ -133,6 +133,63 @@ class Base(Page):
         @property
         def search_suggestion_title(self):
             return self.selenium.find_element(*self._suggestion_list_title_locator).text
+
+        @property
+        def navigation_menu(self):
+            return self.NavigationMenu(self.testsetup)
+
+        class NavigationMenu(Page):
+            _menu_locator = (By.CSS_SELECTOR, '#site-header > section > nav[role="navigation"]')
+            _menu_button_locator = (By.CSS_SELECTOR, 'a.menu-button')
+            _flyout_items_locator = (By.CSS_SELECTOR, '#flyout > li')
+            _flyout_locator = (By.ID, 'flyout')
+
+            def __init__(self, testsetup):
+                Page.__init__(self, testsetup)
+                self.root_element = self.find_element(*self._menu_locator)
+
+            @property
+            def is_flyout_active(self):
+                return 'active' in self.root_element.find_element(*self._flyout_locator).get_attribute('class')
+
+            def open_flyout(self):
+                if not self.is_flyout_active:
+                    self.root_element.find_element(*self._menu_button_locator).click()
+
+            @property
+            def flyout_items(self):
+                return [self.FlyoutItem(self.testsetup, item, self) for item in self.find_elements(*self._flyout_items_locator)]
+
+            def flyout_item(self, item_name):
+                for item in self.flyout_items:
+                    if item.name == item_name:
+                        return item
+
+            class FlyoutItem(PageRegion):
+                _click_locator = (By.CSS_SELECTOR, 'a')
+
+                def __init__(self, testsetup, element, menu):
+                    PageRegion.__init__(self, testsetup, element)
+                    self._menu = menu
+
+                def click(self):
+                    self._menu.open_flyout()
+                    name = self.name
+                    self.find_element(*self._click_locator).click()
+                    if name == "Home":
+                        from pages.desktop.consumer_pages.home import Home
+                        return Home(self.testsetup)
+                    if name == "Categories":
+                        from pages.desktop.consumer_pages.apps import Apps
+                        return Apps(self.testsetup)
+                    else:
+                        from pages.desktop.consumer_pages.search import Search
+                        return Search(self.testsetup)
+
+                @property
+                def name(self):
+                    self._menu.open_flyout()
+                    return self.find_element(*self._click_locator).text
 
         class SearchSuggestion(Page):
 

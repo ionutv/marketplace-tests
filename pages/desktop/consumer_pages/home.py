@@ -45,3 +45,11 @@ class Home(Base):
     @property
     def featured_section_elements_count(self):
         return len(self.selenium.find_elements(*self._featured_section_locator))
+
+    @property
+    def is_menu_button_visible(self):
+        return self.is_element_visible(*self._menu_button_locator)
+
+    @property
+    def is_menu_button_list_visible(self):
+        return self.is_element_visible(*self._menu_button_list_locator)
